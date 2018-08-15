@@ -67,6 +67,11 @@ Param(
 [string]$Sort = "None",
 
 [Parameter(
+    ParameterSetName = "Count"
+)]
+[switch]$Total,
+
+[Parameter(
     ParameterSetName = "Sum"
 )]
 [Parameter(
@@ -193,6 +198,14 @@ Process {
                         $hash.Add($n,$_.count)
 
                     } #foreach
+                    
+                    If ($Total) {
+                        $RowTotal = 0
+                        foreach($col in $hash.keys) {
+                            $RowTotal = $RowTotal + $hash.$col
+                        }
+                        $hash.Add('Total',$RowTotal)
+                    }
                  } #count
         "Sum"  {
                     Write-Verbose "Calculating sum based on $xLabel using $sum"
@@ -270,6 +283,18 @@ Process {
        Write-Verbose "Adding object to the results array"
        $result += [pscustomobject]$hash
     } #foreach item
+
+    #add grand total row
+    if($Total) {
+        $GrandTotal = [ordered]@{}
+        $GrandTotal.Add($yLabel,'Total')
+        foreach($col in $result[0].PSObject.Properties) {
+            if($col.Name -ne $yLabel){
+                $GrandTotal.Add($col.Name,($result | Measure-Object $col.Name -Sum).Sum)
+            }
+        }
+        $result += [pscustomobject]$GrandTotal
+    }
 
 } #process
 
